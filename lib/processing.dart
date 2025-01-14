@@ -69,7 +69,7 @@ class _ProcessingPageState extends State<ProcessingPage>
                         final docRef = FirebaseFirestore.instance
                             .collection('bin')
                             .doc(selectedBin);
-                        await docRef.update({'flag': 1});
+                        await docRef.update({'flag': 0});
                         await docRef
                             .update({'plastic': FieldValue.increment(1)});
                       }
@@ -91,7 +91,7 @@ class _ProcessingPageState extends State<ProcessingPage>
                             .collection('bin')
                             .doc(selectedBin);
 
-                        await docRef.update({'flag': 1});
+                        await docRef.update({'flag': 0});
 
                         final email = user.email;
                         if (email != null) {
