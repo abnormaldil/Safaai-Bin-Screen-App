@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+
 class Screensaver extends StatefulWidget {
   @override
   _ScreensaverState createState() => _ScreensaverState();
@@ -36,7 +37,7 @@ class _ScreensaverState extends State<Screensaver> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _navigateToHome, // Navigate to home on user interaction
+      onTap: _navigateToHome, 
       behavior: HitTestBehavior.opaque,
       child: Scaffold(
         body: Stack(
@@ -45,7 +46,7 @@ class _ScreensaverState extends State<Screensaver> {
               SizedBox.expand(
                 child: FittedBox(
                   fit:
-                      BoxFit.cover, // Ensures the video covers the whole screen
+                      BoxFit.cover, 
                   child: SizedBox(
                     width: _videoController.value.size.width,
                     height: _videoController.value.size.height,
@@ -55,7 +56,7 @@ class _ScreensaverState extends State<Screensaver> {
               )
             else
               Center(
-                child: CircularProgressIndicator(), // Loading indicator
+                child: CircularProgressIndicator(), 
               ),
           ],
         ),

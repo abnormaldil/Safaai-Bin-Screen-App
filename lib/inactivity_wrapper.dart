@@ -48,8 +48,8 @@ class _InactivityWrapperState extends State<InactivityWrapper> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _resetInactivityTimer, // Reset on user interaction
-      onPanDown: (_) => _resetInactivityTimer(), // Detect touch gestures
+      onTap: _resetInactivityTimer, 
+      onPanDown: (_) => _resetInactivityTimer(), 
       child: widget.child,
     );
   }

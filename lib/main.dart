@@ -8,12 +8,11 @@ import 'user.dart';
 import 'processing.dart';
 import 'screensaver.dart';
 import 'inactivity_wrapper.dart';
-import 'bin_selection.dart'; // Import the BinSelectionPage
+import 'bin_selection.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Lock the app in landscape mode
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.landscapeRight,
@@ -56,7 +55,7 @@ class AdminApp extends StatelessWidget {
         '/screensaver': (context) => Screensaver(),
         '/user': (context) => UserPage(),
         '/home': (context) => Home(),
-        '/processing': (context)  => ProcessingPage(),
+        '/processing': (context) => ProcessingPage(),
       },
     );
   }
