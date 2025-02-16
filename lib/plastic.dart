@@ -64,23 +64,42 @@ class _PlasticState extends State<Plastic> {
       if (selectedBin != null) {
         final email = user.email;
         if (email != null) {
-          DocumentSnapshot doc = await FirebaseFirestore.instance
+          DocumentSnapshot binDoc = await FirebaseFirestore.instance
               .collection('bin')
               .doc(selectedBin)
               .get();
-          int plasticCount = doc['plastic'] ?? 0;
+
+          int plasticCount = binDoc['plastic'] ?? 0;
           int creditIncrement = plasticCount * 10;
 
+          // Fetch current totalplastic value from user's document
+          DocumentSnapshot userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(email)
+              .get();
+
+          int currentTotalPlastic = userDoc['totalplastic'] ?? 0;
+          int newTotalPlastic = currentTotalPlastic + plasticCount;
+
+          // Update both CreditBalance and totalplastic
           await FirebaseFirestore.instance
               .collection('users')
               .doc(email)
-              .update({'CreditBalance': FieldValue.increment(creditIncrement)});
+              .update({
+            'CreditBalance': FieldValue.increment(creditIncrement),
+            'totalplastic': newTotalPlastic,
+          });
 
+          // Reset plastic count and flag in the bin document
           await FirebaseFirestore.instance
               .collection('bin')
               .doc(selectedBin)
-              .update({'plastic': 0, 'flag': 0});
+              .update({
+            'plastic': 0,
+            'flag': 0,
+          });
 
+          // Show overlay notification
           final overlay = Overlay.of(context);
           final overlayEntry = OverlayEntry(
             builder: (context) => Positioned(
@@ -126,9 +145,9 @@ class _PlasticState extends State<Plastic> {
               ),
             ),
           );
-          Navigator.of(context).pop(
-            MaterialPageRoute(builder: (context) => UserPage()),
-          );
+
+          Navigator.of(context)
+              .pop(MaterialPageRoute(builder: (context) => UserPage()));
 
           overlay?.insert(overlayEntry);
           await Future.delayed(const Duration(seconds: 4));

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lottie/lottie.dart';
 import 'package:safaaibin/processing.dart';
+import 'package:safaaibin/screensaver.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -17,6 +18,8 @@ class _UserPageState extends State<UserPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   String? _binName;
   int? _binDescription;
+  int? _totalearned;
+  int? totalplastic;
   String? _userName;
   int? _creditBalance;
   bool _isLoading = true;
@@ -43,6 +46,8 @@ class _UserPageState extends State<UserPage> {
           setState(() {
             _userName = userDoc['Name'];
             _creditBalance = userDoc['CreditBalance'] as int?;
+            _totalearned = userDoc['totalearned'] as int?;
+            totalplastic = userDoc['totalplastic'] as int?;
             _isLoading = false;
           });
         } else {
@@ -50,6 +55,8 @@ class _UserPageState extends State<UserPage> {
             _userName = "No name found";
             _creditBalance = 0;
             _isLoading = false;
+            _totalearned = 0;
+            totalplastic = 0;
           });
         }
       });
@@ -58,20 +65,17 @@ class _UserPageState extends State<UserPage> {
 
   void _onVerticalDragUpdate(DragUpdateDetails details) {
     setState(() {
-      
       _dragOffset += details.delta.dy;
-      if (_dragOffset < 0) _dragOffset = 0; 
+      if (_dragOffset < 0) _dragOffset = 0;
       if (_dragOffset > _maxDragDistance) _dragOffset = _maxDragDistance;
     });
   }
 
   void _onVerticalDragEnd(DragEndDetails details) {
     if (_dragOffset >= _maxDragDistance * 0.9) {
-      
       _addPlastic();
     }
     setState(() {
-      
       _dragOffset = 0;
     });
   }
@@ -79,20 +83,31 @@ class _UserPageState extends State<UserPage> {
   Future<void> _redeemCredits(BuildContext context, int creditBalance,
       Map<String, dynamic> userData) async {
     if (creditBalance >= 100) {
-      int redeemedCredit =
-          creditBalance - (creditBalance % 100); 
-      int newCreditBalance = creditBalance % 100; 
+      int redeemedCredit = creditBalance - (creditBalance % 100);
+      int newCreditBalance = creditBalance % 100;
 
-      
       User? user = _auth.currentUser;
       if (user != null) {
         try {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.email)
-              .update({'CreditBalance': newCreditBalance});
+          DocumentReference userDoc =
+              FirebaseFirestore.instance.collection('users').doc(user.email);
 
-          
+          // Get current totalearned as an int
+          DocumentSnapshot userSnapshot = await userDoc.get();
+          int currentTotalEarned =
+              (userSnapshot.data() as Map<String, dynamic>?)?['totalearned']
+                      ?.toInt() ??
+                  0;
+
+          // Increment totalearned by (redeemedCredit ~/ 100) as an int
+          int updatedTotalEarned = currentTotalEarned + (redeemedCredit ~/ 100);
+
+          // Update CreditBalance and totalearned as integers
+          await userDoc.update({
+            'CreditBalance': newCreditBalance,
+            'totalearned': updatedTotalEarned,
+          });
+
           Timestamp transactionTime = Timestamp.now();
           String upiId = userData['UpiId'];
           String email = userData['Email'];
@@ -109,28 +124,24 @@ class _UserPageState extends State<UserPage> {
             'Email': email,
           });
 
-          
           var assetSource = AssetSource('claimed.mp3');
           await _player.play(assetSource);
           final overlay = Overlay.of(context);
           final overlayEntry = OverlayEntry(
             builder: (context) => Positioned(
-              top: 20, 
-              left: MediaQuery.of(context).size.width *
-                  0.4, 
+              top: 20,
+              left: MediaQuery.of(context).size.width * 0.4,
               child: Material(
                 color: Colors.transparent,
                 child: AnimatedOpacity(
                   opacity: 1.0,
-                  duration: Duration(seconds: 2), 
+                  duration: Duration(seconds: 2),
                   child: Container(
-                    width: MediaQuery.of(context).size.width *
-                        0.15, 
+                    width: MediaQuery.of(context).size.width * 0.15,
                     padding: EdgeInsets.symmetric(vertical: 12, horizontal: 14),
                     decoration: BoxDecoration(
-                      color: const Color.fromARGB(
-                          255, 36, 213, 142), 
-                      borderRadius: BorderRadius.circular(20), 
+                      color: const Color.fromARGB(255, 36, 213, 142),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       children: [
@@ -146,7 +157,7 @@ class _UserPageState extends State<UserPage> {
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               fontFamily: 'Gilroy',
-                              color: const Color.fromARGB(255, 255, 255, 255),
+                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -158,13 +169,10 @@ class _UserPageState extends State<UserPage> {
             ),
           );
 
-          
           overlay.insert(overlayEntry);
 
-          
           await Future.delayed(Duration(seconds: 2));
 
-          
           overlayEntry.remove();
         } catch (error) {
           print("Error saving transaction: $error");
@@ -176,28 +184,25 @@ class _UserPageState extends State<UserPage> {
         }
       }
     } else {
-      
       var assetSource = AssetSource('error.mp3');
       await _player.play(assetSource);
 
-      
       final overlay = Overlay.of(context);
       final overlayEntry = OverlayEntry(
         builder: (context) => Positioned(
-          top: 20, 
-          left: MediaQuery.of(context).size.width * 0.4, 
+          top: 20,
+          left: MediaQuery.of(context).size.width * 0.4,
           child: Material(
             color: Colors.transparent,
             child: AnimatedOpacity(
               opacity: 1.0,
-              duration: Duration(seconds: 2), 
+              duration: Duration(seconds: 2),
               child: Container(
-                width: MediaQuery.of(context).size.width *
-                    0.23, 
+                width: MediaQuery.of(context).size.width * 0.23,
                 padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Colors.red, 
-                  borderRadius: BorderRadius.circular(20), 
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
@@ -213,7 +218,7 @@ class _UserPageState extends State<UserPage> {
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'Gilroy',
-                          color: const Color.fromARGB(255, 255, 255, 255),
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -225,13 +230,10 @@ class _UserPageState extends State<UserPage> {
         ),
       );
 
-      
       overlay.insert(overlayEntry);
 
-      
       await Future.delayed(Duration(seconds: 2));
 
-      
       overlayEntry.remove();
     }
   }
@@ -239,6 +241,7 @@ class _UserPageState extends State<UserPage> {
   void _fetchBinDetails() async {
     final prefs = await SharedPreferences.getInstance();
     final selectedBin = prefs.getString('selectedBin');
+    print('Selected Bin: $selectedBin'); // Debug print
     if (selectedBin != null) {
       setState(() {
         _binName = selectedBin;
@@ -260,11 +263,13 @@ class _UserPageState extends State<UserPage> {
         .snapshots()
         .listen((binDoc) {
       if (binDoc.exists) {
+        print('Bin Document Data: ${binDoc.data()}'); // Debug print
         setState(() {
           _binDescription = binDoc['description'] as int?;
           _isLoading = false;
         });
       } else {
+        print('Bin Document does not exist'); // Debug print
         setState(() {
           _binDescription = null;
           _isLoading = false;
@@ -297,8 +302,7 @@ class _UserPageState extends State<UserPage> {
           child: child,
         );
       },
-      transitionDuration:
-          Duration(milliseconds: 400), 
+      transitionDuration: Duration(milliseconds: 400),
     );
   }
 
@@ -310,7 +314,7 @@ class _UserPageState extends State<UserPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        toolbarHeight: 90,
+        toolbarHeight: 80,
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Row(
@@ -319,33 +323,51 @@ class _UserPageState extends State<UserPage> {
             Text(
               "Safaai",
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'Gilroy',
                 color: const Color.fromARGB(255, 80, 79, 79),
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
+            Row(
               children: [
-                Text(
-                  "Hola,",
-                  style: TextStyle(
-                    fontSize: 24,
-                    color: const Color.fromARGB(255, 80, 79, 79),
-                    fontFamily: 'Gilroy',
-                    fontWeight: FontWeight.normal,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "Hola,",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: const Color.fromARGB(255, 80, 79, 79),
+                        fontFamily: 'Gilroy',
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                    Text(
+                      '${_userName ?? "User"}!',
+                      style: TextStyle(
+                        fontSize: 22,
+                        color: const Color.fromARGB(255, 80, 79, 79),
+                        fontFamily: 'Gilroy',
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  '${_userName ?? "User"}!',
-                  style: TextStyle(
-                    fontSize: 26,
-                    color: const Color.fromARGB(255, 80, 79, 79),
-                    fontFamily: 'Gilroy',
-                    fontWeight: FontWeight.bold,
-                  ),
+                SizedBox(
+                  width: 10,
+                ),
+                IconButton(
+                  icon: Icon(Icons.logout,
+                      color: const Color.fromARGB(255, 255, 107, 107)),
+                  iconSize: 35,
+                  onPressed: () async {
+                    await FirebaseAuth.instance.signOut();
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context) => Screensaver()),
+                    );
+                  },
                 ),
               ],
             ),
@@ -359,7 +381,6 @@ class _UserPageState extends State<UserPage> {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  
                   Flexible(
                     child: Column(
                       children: [
@@ -388,97 +409,12 @@ class _UserPageState extends State<UserPage> {
                                     MainAxisAlignment.spaceEvenly,
                                 children: [
                                   Flexible(
-                                    flex: 2,
-                                    child: SfRadialGauge(
-                                      axes: <RadialAxis>[
-                                        RadialAxis(
-                                          minimum: 0,
-                                          maximum: 100,
-                                          showLabels: false,
-                                          showTicks: false,
-                                          axisLineStyle: AxisLineStyle(
-                                            thickness: 0.3,
-                                            cornerStyle: CornerStyle.bothCurve,
-                                            color: const Color.fromARGB(
-                                                255, 232, 231, 231)!,
-                                            thicknessUnit: GaugeSizeUnit.factor,
-                                          ),
-                                          pointers: <GaugePointer>[
-                                            RangePointer(
-                                              value:
-                                                  _binDescription?.toDouble() ??
-                                                      0.0,
-                                              cornerStyle:
-                                                  CornerStyle.bothCurve,
-                                              width: 0.3,
-                                              sizeUnit: GaugeSizeUnit.factor,
-                                              gradient: SweepGradient(
-                                                colors: [
-                                                  Color(0xFF17975B),
-                                                  Color(0xFF20C382),
-                                                  Color(0xFF18F99F),
-                                                ],
-                                              ),
-                                              enableAnimation: true,
-                                              animationType: AnimationType.ease,
-                                              animationDuration: 1000,
-                                            ),
-                                          ],
-                                          annotations: <GaugeAnnotation>[
-                                            GaugeAnnotation(
-                                              positionFactor: 0.90,
-                                              angle: 90,
-                                              widget: Column(
-                                                mainAxisAlignment: MainAxisAlignment
-                                                    .start, 
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  TweenAnimationBuilder<int>(
-                                                    tween: IntTween(
-                                                        begin: 0,
-                                                        end: _binDescription ??
-                                                            0),
-                                                    duration: Duration(
-                                                        milliseconds: 500),
-                                                    builder: (context, value,
-                                                        child) {
-                                                      return Text(
-                                                        "$value%",
-                                                        style: TextStyle(
-                                                          fontSize: 30,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          fontFamily: 'Gilroy',
-                                                          color: const Color
-                                                              .fromARGB(255, 23,
-                                                              228, 146),
-                                                        ),
-                                                      );
-                                                    },
-                                                  ),
-                                                  Text(
-                                                    "Bin Filled",
-                                                    style: TextStyle(
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontFamily: 'Gilroy',
-                                                      color:
-                                                          const Color.fromARGB(
-                                                              255,
-                                                              255,
-                                                              255,
-                                                              255),
-                                                      height: 0.5,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                    child: Lottie.asset(
+                                      'assets/earth.json', // Lottie animation file
+                                      height:
+                                          150, // Adjusted height to fit properly
+                                      width: 300,
+                                      fit: BoxFit.cover,
                                     ),
                                   ),
                                 ],
@@ -551,8 +487,8 @@ class _UserPageState extends State<UserPage> {
                                               positionFactor: 0.90,
                                               angle: 90,
                                               widget: Column(
-                                                mainAxisAlignment: MainAxisAlignment
-                                                    .start, 
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.start,
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.start,
                                                 children: [
@@ -636,7 +572,7 @@ class _UserPageState extends State<UserPage> {
                                 children: [
                                   TweenAnimationBuilder<int>(
                                     tween: IntTween(
-                                        begin: 0, end: _binDescription ?? 0),
+                                        begin: 0, end: totalplastic ?? 0),
                                     duration: Duration(milliseconds: 800),
                                     builder: (context, value, child) {
                                       return Text(
@@ -691,7 +627,7 @@ class _UserPageState extends State<UserPage> {
                                 children: [
                                   TweenAnimationBuilder<int>(
                                     tween: IntTween(
-                                        begin: 0, end: _binDescription ?? 0),
+                                        begin: 0, end: _totalearned ?? 0),
                                     duration: Duration(milliseconds: 800),
                                     builder: (context, value, child) {
                                       return Text(
@@ -835,27 +771,22 @@ class _UserPageState extends State<UserPage> {
                                       ),
                                     ),
                                   ),
-                                  
                                   GestureDetector(
                                     onTap: () {
-                                      User? user = _auth
-                                          .currentUser; 
+                                      User? user = _auth.currentUser;
                                       _redeemCredits(
                                           context, _creditBalance ?? 0, {
-                                        'UpiId': user?.email ??
-                                            '', 
+                                        'UpiId': user?.email ?? '',
                                         'Email': user?.email ?? '',
                                       });
                                     },
                                     child: Container(
                                       margin: EdgeInsets.symmetric(
                                           horizontal: 45, vertical: 10),
-                                      padding: EdgeInsets.symmetric(
-                                          vertical:
-                                              10), 
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 10),
                                       decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(
-                                            30), 
+                                        borderRadius: BorderRadius.circular(30),
                                         gradient: LinearGradient(
                                           colors: [
                                             Color.fromARGB(255, 37, 232, 154),
@@ -872,8 +803,7 @@ class _UserPageState extends State<UserPage> {
                                                 .withOpacity(0.3),
                                             blurRadius: 10,
                                             spreadRadius: 5,
-                                            offset: Offset(
-                                                0, 3), 
+                                            offset: Offset(0, 3),
                                           ),
                                         ],
                                       ),
@@ -919,19 +849,16 @@ class _UserPageState extends State<UserPage> {
                                 alignment: Alignment.topCenter,
                                 children: [
                                   Positioned(
-                                    top:
-                                        _dragOffset, 
+                                    top: _dragOffset,
                                     child: GestureDetector(
                                       onVerticalDragUpdate:
                                           _onVerticalDragUpdate,
                                       onVerticalDragEnd: _onVerticalDragEnd,
                                       child: Container(
-                                        width:
-                                            130, 
+                                        width: 130,
                                         height: 130,
                                         decoration: BoxDecoration(
-                                          shape: BoxShape
-                                              .circle, 
+                                          shape: BoxShape.circle,
                                           gradient: LinearGradient(
                                             colors: [
                                               Color.fromARGB(255, 37, 232, 154),
@@ -964,8 +891,7 @@ class _UserPageState extends State<UserPage> {
                                     ),
                                   ),
                                   Positioned(
-                                    top: _dragOffset +
-                                        150, 
+                                    top: _dragOffset + 150,
                                     child: Center(
                                       child: Text(
                                         'Dispose Plastic\nNow',
@@ -987,54 +913,6 @@ class _UserPageState extends State<UserPage> {
                       ],
                     ),
                   ),
-
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
                 ],
               ),
       ),

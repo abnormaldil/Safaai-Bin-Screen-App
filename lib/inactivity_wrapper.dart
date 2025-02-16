@@ -42,14 +42,14 @@ class _InactivityWrapperState extends State<InactivityWrapper> {
   }
 
   void _navigateToScreensaver() {
-    Navigator.pushReplacementNamed(context, '/screensaver');
+    Navigator.popAndPushNamed(context, '/screensaver');
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _resetInactivityTimer, 
-      onPanDown: (_) => _resetInactivityTimer(), 
+      onTap: _resetInactivityTimer,
+      onPanDown: (_) => _resetInactivityTimer(),
       child: widget.child,
     );
   }

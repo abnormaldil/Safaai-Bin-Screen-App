@@ -38,9 +38,10 @@ dependencies:
   syncfusion_flutter_gauges: ^20.3.56
   font_awesome_flutter: ^10.7.0
   audioplayers: ^6.0.0
-  lottie: ^2.2.0
+  lottie: ^3.3.1
   fluttertoast: ^8.2.1
-
+  web_socket_channel: ^3.0.2
+  connectivity_plus: ^5.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -79,6 +80,8 @@ flutter:
     - assets/arrow.json
     - assets/plastic.json
     - assets/nonplastic.json
+    - assets/
+    - assets/earth.json
 
  
   fonts:
